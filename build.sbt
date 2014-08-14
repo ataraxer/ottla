@@ -4,8 +4,7 @@ val commonSettings = Seq(
   homepage := Some(url("http://github.com/ataraxer/ottla")),
   licenses := Seq("MIT License" -> url(
     "http://www.opensource.org/licenses/mit-license.php")),
-  scalaVersion := "2.11.2",
-  crossScalaVersions := Seq("2.10.4", "2.11.2"),
+  scalaVersion := "2.10.4",
   scalacOptions ++= Seq(
     "-g:vars",
     "-deprecation",
@@ -19,6 +18,7 @@ val commonSettings = Seq(
 
 val dependencies = Seq(
   libraryDependencies ++= Seq(
+    "org.apache.kafka" %% "kafka" % "0.8.1.1",
     "com.ataraxer" %% "zooowner-actor" % "0.2.4",
     "com.typesafe.akka" %% "akka-actor"   % "2.3.4",
     "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",

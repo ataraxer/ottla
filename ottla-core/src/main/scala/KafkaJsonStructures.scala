@@ -4,7 +4,7 @@ package com.ataraxer.ottla
 object KafkaJsonStructures {
   case class TopicInfo(
     version: Int,
-    partitions: List[Int])
+    partitions: Map[Int, Seq[Int]])
 
   case class PartitionState(
     version: Int,
