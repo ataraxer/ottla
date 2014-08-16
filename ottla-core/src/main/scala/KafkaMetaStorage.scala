@@ -13,6 +13,7 @@ import org.json4s.native.{Serialization => Json}
 import kafka.utils.ZkUtils
 
 import scala.concurrent.duration._
+import scala.collection.mutable
 
 
 object KafkaMetaStorage {
@@ -27,6 +28,8 @@ object KafkaMetaStorage {
     topic: String,
     replicaAssignment: Map[Int, Seq[Int]],
     update: Boolean = false)
+
+  case class GetTopicPartitionAssignment(topic: String)
 }
 
 
@@ -83,9 +86,29 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor {
       }
       */
     }
+
+
+    case GetTopicPartitionAssignment(topic) => {
+      val topicPath = ZkUtils.getTopicPath(topic)
+      val futurePartitionMap = zk ? ZK.Get(topicPath)
+
+      val result = futurePartitionMap map {
+        case ZK.NodeData(_, Some(zkPartitionMap)) => {
+          val topicInfo = Json.read[TopicInfo](zkPartitionMap)
+          topicInfo.partitions
+        }
+
+        case _ => Map.empty[Int, Seq[Int]]
+      }
+
+      result pipeTo sender
+
+      //debug(
+        //"Partition map for /brokers/topics/%s is %s"
+        //.format(topic, partitionMap))
+    }
   }
 }
-
 
 
 // vim: set ts=2 sw=2 et:
