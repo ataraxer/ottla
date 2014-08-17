@@ -20,6 +20,7 @@ val dependencies = Seq(
   libraryDependencies ++= Seq(
     "org.apache.kafka" %% "kafka" % "0.8.1.1",
     "com.ataraxer" %% "zooowner-actor" % "0.2.4",
+    "com.ataraxer" %% "akkit" % "0.1.0",
     "com.typesafe.akka" %% "akka-actor"   % "2.3.4",
     "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",
     "org.json4s" %% "json4s-native" % "3.2.10",

@@ -2,6 +2,7 @@ package com.ataraxer.ottla
 
 import com.ataraxer.zooowner.actor.ZooownerActor
 import com.ataraxer.zooowner.{message => ZK}
+import com.ataraxer.akkit.Spawner
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.{ask, pipe}
@@ -33,7 +34,7 @@ object KafkaMetaStorage {
 }
 
 
-class KafkaMetaStorage(zk: ActorRef) extends Actor {
+class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
   import KafkaMetaStorage._
   import KafkaJsonStructures._
 
@@ -70,20 +71,26 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor {
         version = 1,
         partitions = replicaAssignment)
 
+      val partitionDataJson = Json.write(partitionData)
+
       if (!update) {
         //info("Topic creation " + jsonPartitionData.toString)
-        zk ! ZK.Create(zkPath, Some(Json.write(partitionData)))
+
+        val client = sender
+        val handler = spawn.handler {
+          case ZK.NoNode => client ! KafkaAdminManager.TopicExists(topic)
+        }
+
+        zk.tell(ZK.Create(zkPath, Some(partitionDataJson)), handler)
       } else {
         //info("Topic update " + jsonPartitionData.toString)
-        zk ! ZK.Set(zkPath, Json.write(partitionData))
+        zk ! ZK.Set(zkPath, partitionDataJson)
       }
+
       /*
-      try {
-        debug("Updated path %s with %s for replica assignment".format(zkPath, jsonPartitionData))
-      } catch {
-        case e: ZkNodeExistsException => throw new TopicExistsException("topic %s already exists".format(topic))
-        case e2: Throwable => throw new AdminOperationException(e2.toString)
-      }
+      debug(
+        "Updated path %s with %s for replica assignment"
+        .format(zkPath, jsonPartitionData))
       */
     }
 

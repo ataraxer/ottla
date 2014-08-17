@@ -17,13 +17,14 @@ import scala.collection.JavaConversions._
 
 import java.util.Properties
 
-
 object KafkaAdminManager {
   case class CreateTopic(
     topic: String,
     partitions: Int,
     replication: Int,
     config: Properties = new Properties)
+
+  case class TopicExists(topic: String)
 
   case class PersistReplicaAssignmentPath(
     topic: String,
@@ -36,7 +37,8 @@ object KafkaAdminManager {
 class KafkaAdminManager(
   metaStorage: ActorRef,
   zk: ActorRef)
-    extends Actor {
+    extends Actor
+{
   import KafkaAdminManager._
   import KafkaMetaStorage._
 
@@ -71,11 +73,6 @@ class KafkaAdminManager(
         "All partitions should have the same number of replicas.")
 
       val topicPath = ZkUtils.getTopicPath(topic)
-
-      //if (!update && zkClient.exists(topicPath)) {
-        //throw new TopicExistsException(
-          //"Topic \"%s\" already exists.".format(topic))
-      //}
 
       replicaAssignment.values.foreach { reps =>
         require(
