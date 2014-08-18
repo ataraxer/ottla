@@ -31,6 +31,7 @@ object KafkaMetaStorage {
     update: Boolean = false)
 
   case class GetTopicPartitionAssignment(topic: String)
+  case class TopicPartitionAssignment(partitions: Map[Int, Seq[Int]])
 }
 
 
@@ -38,21 +39,22 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
   import KafkaMetaStorage._
   import KafkaJsonStructures._
 
-  implicit val timeout: Timeout = 5.seconds
-  implicit val ex = context.dispatcher
-
   implicit val jsonFormatter = Json.formats(NoTypeHints)
 
 
   def receive = {
     case GetBrokerList => {
-      val brokerList = zk ? ZK.GetChildren(ZkUtils.BrokerIdsPath)
-      val result = brokerList map {
-        case ZK.NodeChildren(_, children) => BrokerList {
-          children.map(_.toInt).sorted
+      val client = sender
+
+      val handler = spawn.handler {
+        case ZK.NodeChildren(_, children) => {
+          client ! BrokerList(children.map(_.toInt).sorted)
         }
       }
-      result pipeTo sender
+
+      zk.tell(
+        ZK.GetChildren(ZkUtils.BrokerIdsPath),
+        sender = handler)
     }
 
 
@@ -97,18 +99,21 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
 
     case GetTopicPartitionAssignment(topic) => {
       val topicPath = ZkUtils.getTopicPath(topic)
-      val futurePartitionMap = zk ? ZK.Get(topicPath)
 
-      val result = futurePartitionMap map {
+      val client = sender
+
+      val handler = spawn.handler {
         case ZK.NodeData(_, Some(zkPartitionMap)) => {
           val topicInfo = Json.read[TopicInfo](zkPartitionMap)
-          topicInfo.partitions
+          client ! TopicPartitionAssignment(topicInfo.partitions)
         }
 
-        case _ => Map.empty[Int, Seq[Int]]
+        case _ => client ! Map.empty[Int, Seq[Int]]
       }
 
-      result pipeTo sender
+      zk.tell(
+        ZK.Get(topicPath),
+        sender = handler)
 
       //debug(
         //"Partition map for /brokers/topics/%s is %s"
