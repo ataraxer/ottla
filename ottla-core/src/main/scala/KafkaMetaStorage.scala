@@ -30,8 +30,8 @@ object KafkaMetaStorage {
     replicaAssignment: Map[Int, Seq[Int]],
     update: Boolean = false)
 
-  case class GetTopicPartitionAssignment(topic: String)
-  case class TopicPartitionAssignment(partitions: Map[Int, Seq[Int]])
+  case class GetTopicInfo(topic: String)
+  case class GetPartitionState(topic: String, partition: Int)
 }
 
 
@@ -97,27 +97,37 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
     }
 
 
-    case GetTopicPartitionAssignment(topic) => {
+    case GetTopicInfo(topic) => {
       val topicPath = ZkUtils.getTopicPath(topic)
-
       val client = sender
 
       val handler = spawn.handler {
-        case ZK.NodeData(_, Some(zkPartitionMap)) => {
-          val topicInfo = Json.read[TopicInfo](zkPartitionMap)
-          client ! TopicPartitionAssignment(topicInfo.partitions)
+        case ZK.NodeData(_, Some(zkTopicInfo)) => {
+          val topicInfo = Json.read[TopicInfo](zkTopicInfo)
+          client ! topicInfo
         }
-
-        case _ => client ! Map.empty[Int, Seq[Int]]
       }
 
       zk.tell(
         ZK.Get(topicPath),
         sender = handler)
+    }
 
-      //debug(
-        //"Partition map for /brokers/topics/%s is %s"
-        //.format(topic, partitionMap))
+
+    case GetPartitionState(topic, partition) => {
+      val partitionPath = ZkUtils.getTopicPartitionPath(topic, partition)
+      val client = sender
+
+      val handler = spawn.handler {
+        case ZK.NodeData(_, Some(zkPartitionState)) => {
+          val partitionInfo = Json.read[PartitionState](zkPartitionState)
+          client ! partitionInfo
+        }
+      }
+
+      zk.tell(
+        ZK.Get(partitionPath),
+        sender = handler)
     }
   }
 }
