@@ -11,7 +11,7 @@ import akka.util.Timeout
 import org.json4s.NoTypeHints
 import org.json4s.native.{Serialization => Json}
 
-import kafka.utils.ZkUtils
+import kafka.utils.{ZkUtils, ZKGroupTopicDirs}
 
 import scala.concurrent.duration._
 import scala.collection.mutable
@@ -32,6 +32,12 @@ object KafkaMetaStorage {
 
   case class GetTopicInfo(topic: String)
   case class GetPartitionState(topic: String, partition: Int)
+
+  case class SaveOffset(
+    consumer: String,
+    topic: String,
+    partition: String,
+    offset: Long)
 }
 
 
@@ -128,6 +134,12 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
       zk.tell(
         ZK.Get(partitionPath),
         sender = handler)
+    }
+
+
+    case SaveOffset(consumer, topic, partition, offset) => {
+      val path = new ZKGroupTopicDirs(consumer, topic) + "/" + partition
+      zk ! ZK.Set(path, offset.toString)
     }
   }
 }
