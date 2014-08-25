@@ -9,6 +9,8 @@ object KafkaMessage {
   def apply(buffer: ByteBuffer) = {
 
   }
+
+  val Encoding = "UTF-8"
 }
 
 
