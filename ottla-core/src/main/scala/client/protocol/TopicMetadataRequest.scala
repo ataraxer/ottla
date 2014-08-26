@@ -31,8 +31,11 @@ class TopicMetadataRequest(
     val buffer = ByteBuffer.allocate(this.size)
     buffer.putShort(0) // version
     buffer.putInt(correlationId)
+
     buffer.putShort(clientIdBytes.size.asInstanceOf[Short])
     buffer.put(clientIdBytes)
+
+    buffer.putInt(topics.size)
 
     for (topicBytes <- topicListBytes) {
       buffer.putShort(topicBytes.size.asInstanceOf[Short])
