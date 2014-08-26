@@ -23,7 +23,7 @@ class TopicMetadataRequest(
     2 + // size of a client id
     clientIdBytes.size +
     4 + // number of topics
-    topicListBytes.size
+    topicListBytes.map(2 + _.size).sum
   }
 
 
