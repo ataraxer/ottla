@@ -5,7 +5,7 @@ package protocol
 import java.nio.ByteBuffer
 
 
-class TopicMetadataRequest(
+case class TopicMetadataRequest(
     topics: Seq[String],
     clientId: String,
     correlationId: Int)
@@ -28,7 +28,14 @@ class TopicMetadataRequest(
 
 
   def getBytes: ByteBuffer = {
-    val buffer = ByteBuffer.allocate(this.size)
+    val buffer = ByteBuffer.allocate(
+      4 + // for request size
+      2 + // for request id size
+      this.size)
+
+    buffer.putInt(this.size + 2)
+    buffer.putShort(3: Short)
+
     buffer.putShort(0) // version
     buffer.putInt(correlationId)
 

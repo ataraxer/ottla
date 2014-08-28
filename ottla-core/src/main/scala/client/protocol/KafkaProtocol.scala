@@ -66,6 +66,12 @@ object KafkaProtocol {
         }
       }
     }
+
+
+    def getSeq[T](deserialize: ByteBuffer => T): Seq[T] = {
+      val size = buffer.getInt
+      size times deserialize(buffer)
+    }
   }
 }
 
