@@ -11,10 +11,9 @@ case class TopicMetadataRequest(
     correlationId: Int)
   extends KafkaMessage
 {
-  import KafkaMessage.Encoding
+  import KafkaProtocol._
 
   private val clientIdBytes = clientId.getBytes(Encoding)
-  private val topicListBytes = topics.map(_.getBytes(Encoding))
 
 
   def size = {
@@ -23,7 +22,7 @@ case class TopicMetadataRequest(
     2 + // size of a client id
     clientIdBytes.size +
     4 + // number of topics
-    topicListBytes.map(2 + _.size).sum
+    topics.map(2 + _.getBytes(Encoding).size).sum
   }
 
 
@@ -34,20 +33,17 @@ case class TopicMetadataRequest(
       this.size)
 
     buffer.putInt(this.size + 2)
-    buffer.putShort(3: Short)
+    buffer.putShort(3)
 
     buffer.putShort(0) // version
     buffer.putInt(correlationId)
 
-    buffer.putShort(clientIdBytes.size.asInstanceOf[Short])
+    buffer.putShort(clientIdBytes.size.toShort)
     buffer.put(clientIdBytes)
 
     buffer.putInt(topics.size)
 
-    for (topicBytes <- topicListBytes) {
-      buffer.putShort(topicBytes.size.asInstanceOf[Short])
-      buffer.put(topicBytes)
-    }
+    topics.foreach(buffer.putString)
 
     buffer
   }

@@ -76,21 +76,13 @@ object TopicMetadataResponse {
 
     val correlationId = buffer.getInt
 
-    val brokerCount = buffer.getInt
-    val brokers = {
-      brokerCount times {
-        Broker.readFrom(buffer)
-      }
-    }
+    val brokers = buffer.getSeq(
+      Broker.readFrom _)
 
     val brokerMap = brokers.map(b => (b.node, b)).toMap
 
-    val topicCount = buffer.getInt
-    val topicsMetadata = {
-      topicCount times {
-        TopicMetadata.readFrom(buffer) //, brokerMap)
-      }
-    }
+    val topicsMetadata = buffer.getSeq(
+      TopicMetadata.readFrom _)
 
     TopicMetadataResponse(topicsMetadata, correlationId)
   }

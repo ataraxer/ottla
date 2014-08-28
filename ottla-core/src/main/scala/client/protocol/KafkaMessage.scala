@@ -5,15 +5,6 @@ package protocol
 import java.nio.ByteBuffer
 
 
-object KafkaMessage {
-  def apply(buffer: ByteBuffer) = {
-
-  }
-
-  val Encoding = "UTF-8"
-}
-
-
 trait KafkaMessage {
   /**
    * Message size in bytes.
