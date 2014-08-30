@@ -8,7 +8,6 @@ import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 
 import kafka.admin.AdminUtils
-import kafka.utils.ZkUtils
 import kafka.common.Topic
 import kafka.log.LogConfig
 
@@ -72,7 +71,7 @@ class KafkaAdminManager(
         replicaAssignment.values.map(_.size).toSet.size == 1,
         "All partitions should have the same number of replicas.")
 
-      val topicPath = ZkUtils.getTopicPath(topic)
+      val topicPath = KafkaZK.topicPath(topic)
 
       replicaAssignment.values.foreach { reps =>
         require(

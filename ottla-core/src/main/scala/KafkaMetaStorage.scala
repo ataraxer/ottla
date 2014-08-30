@@ -11,8 +11,6 @@ import akka.util.Timeout
 import org.json4s.NoTypeHints
 import org.json4s.native.{Serialization => Json}
 
-import kafka.utils.{ZkUtils, ZKGroupTopicDirs}
-
 import scala.concurrent.duration._
 import scala.collection.mutable
 
@@ -42,6 +40,7 @@ object KafkaMetaStorage {
 
 
 class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
+  import Kafka._
   import KafkaMetaStorage._
   import KafkaJsonStructures._
 
@@ -59,7 +58,7 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
       }
 
       zk.tell(
-        ZK.GetChildren(ZkUtils.BrokerIdsPath),
+        ZK.GetChildren(KafkaZK.BrokersDirectory),
         sender = handler)
     }
 
@@ -69,12 +68,12 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
         version = 1,
         config = config)
 
-      zk ! ZK.Set(ZkUtils.getTopicConfigPath(topic), Json.write(topicConfig))
+      zk ! ZK.Set(KafkaZK.topicConfigPath(topic), Json.write(topicConfig))
     }
 
 
     case SaveTopicPartitionAssignment(topic, replicaAssignment, update) => {
-      val zkPath = ZkUtils.getTopicPath(topic)
+      val zkPath = KafkaZK.topicPath(topic)
       val partitionData = TopicInfo(
         version = 1,
         partitions = replicaAssignment)
@@ -104,7 +103,7 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
 
 
     case GetTopicInfo(topic) => {
-      val topicPath = ZkUtils.getTopicPath(topic)
+      val topicPath = KafkaZK.topicPath(topic)
       val client = sender
 
       val handler = spawn.handler {
@@ -120,8 +119,9 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
     }
 
 
-    case GetPartitionState(topic, partition) => {
-      val partitionPath = ZkUtils.getTopicPartitionPath(topic, partition)
+    case GetPartitionState(topic, partitionId) => {
+      val partition = Partition(topic, partitionId)
+      val partitionPath = KafkaZK.partitionPath(partition)
       val client = sender
 
       val handler = spawn.handler {
@@ -137,9 +137,10 @@ class KafkaMetaStorage(zk: ActorRef) extends Actor with Spawner {
     }
 
 
-    case SaveOffset(consumer, topic, partition, offset) => {
-      val path = new ZKGroupTopicDirs(consumer, topic) + "/" + partition
-      zk ! ZK.Set(path, offset.toString)
+    case SaveOffset(consumer, topic, partitionId, offset) => {
+      val partition = Partition(topic, partitionId.toInt)
+      val offsetPath = KafkaZK.offsetPath(consumer, partition)
+      zk ! ZK.Set(offsetPath, offset.toString)
     }
   }
 }
