@@ -49,15 +49,45 @@ case class OffsetRequest(
     4 + // correlation id
     2 + // size of a client id
     clientIdBytes.size +
-    4 + // replica id
+    4 + // consumer id
     4 + // number of topics
     requestsSize
   }
 
 
   def getBytes: ByteBuffer = {
-    val buffer = ByteBuffer.allocate(0)
-    // TODO: implement
+    val buffer = ByteBuffer.allocate(
+      4 + // request size
+      2 + // request id size
+      this.size)
+
+    buffer.putInt(this.size + 2)
+    buffer.putShort(2) // offset request api key
+
+    buffer.putShort(0) // version
+    buffer.putInt(correlationId)
+
+    buffer.putShort(clientIdBytes.size.toShort)
+    buffer.put(clientIdBytes)
+
+    buffer.putInt(consumerId)
+
+    buffer.putInt(groupedRequests.size)
+
+    groupedRequests foreach { case (topic, requestList) =>
+      val topicBytes = topic.getBytes(Encoding)
+      buffer.putShort(topicBytes.size.toShort)
+      buffer.put(topicBytes)
+
+      buffer.putInt(requestList.size)
+
+      requestList foreach { request =>
+        buffer.putInt(request.partition.id)
+        buffer.putLong(request.beforeTime)
+        buffer.putInt(request.numberLimit)
+      }
+    }
+
     buffer
   }
 }
