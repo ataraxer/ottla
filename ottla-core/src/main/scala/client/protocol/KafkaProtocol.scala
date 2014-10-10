@@ -57,7 +57,7 @@ object KafkaProtocol {
         case Some(string) => {
           val stringBytes = string.getBytes(Encoding)
           val stringSize = stringBytes.size
-          buffer.putShort(stringSize.asInstanceOf[Short])
+          buffer.putShort(stringSize.toShort)
           buffer.put(stringBytes)
         }
 

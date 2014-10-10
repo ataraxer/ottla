@@ -17,6 +17,8 @@ case class TopicMetadataRequest(
 
 
   def size = {
+    4 + // request size
+    2 + // request id size
     2 + // version
     4 + // correlation id
     2 + // size of a client id
@@ -27,19 +29,15 @@ case class TopicMetadataRequest(
 
 
   def getBytes: ByteBuffer = {
-    val buffer = ByteBuffer.allocate(
-      4 + // for request size
-      2 + // for request id size
-      this.size)
+    val buffer = ByteBuffer.allocate(this.size)
 
-    buffer.putInt(this.size + 2)
-    buffer.putShort(3)
+    buffer.putInt(2 + this.size) // request size
+    buffer.putShort(3) // topic request api key
 
     buffer.putShort(0) // version
     buffer.putInt(correlationId)
 
-    buffer.putShort(clientIdBytes.size.toShort)
-    buffer.put(clientIdBytes)
+    buffer.putString(clientId)
 
     buffer.putInt(topics.size)
 
